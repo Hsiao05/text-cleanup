@@ -1,6 +1,6 @@
 # Text Cleanup — Examples and Acceptance Cases
 
-These examples specify the desired output **only when the context is sufficiently clear**. They are behavioral tests, not instructions to perform naive global replacements. Unless stated otherwise, Chinese↔Latin and Chinese↔number modes are `add`.
+These examples specify the desired output **only when the context is sufficiently clear**. They are behavioral tests, not instructions to perform naive global replacements. Unless stated otherwise, the default standard profile adds Chinese↔Latin, Chinese↔number and ordinary number↔Latin-unit spacing where safe; general no-add/no-space requests cover all three.
 
 ## Core cleanup
 
@@ -106,33 +106,33 @@ known approach is used.
 
 **User instruction:** `中英文和中文与数字之间都不要添加空格。`
 
-**Input:** `这个AI工具有3个功能，提升15%。`
+**Input:** `这个AI工具有3个功能，容量20GB，提升15%。`
 
-**Expected:** `这个AI工具有3个功能，提升15%。`
+**Expected:** `这个AI工具有3个功能，容量20GB，提升15%。`
 
 ### 12. Preserve existing spaces, without adding new ones
 
 **User instruction:** `中英文之间不添加空格，已有的保留。`
 
-**Input:** `我用 AI 写作，也用GPT。`
+**Input:** `我用 AI 写作，也用GPT，另有20GB和 10 GB 空间。`
 
-**Expected:** `我用 AI 写作，也用GPT。`
+**Expected:** `我用 AI 写作，也用GPT，另有20GB和 10 GB 空间。`
 
 ### 13. Compact mode actually removes optional boundary spaces
 
 **User instruction:** `中英文、中文数字之间都不要留空格。`
 
-**Input:** `这个 AI 工具有 3 个功能。`
+**Input:** `这个 AI 工具有 3 个功能，使用 20 GB 空间。`
 
-**Expected:** `这个AI工具有3个功能。`
+**Expected:** `这个AI工具有3个功能，使用20GB空间。`
 
 ### 14. Independent control
 
 **User instruction:** `中英文之间不加空格，但中文与数字之间按照标准排版。`
 
-**Input:** `使用AI完成3项任务。`
+**Input:** `使用AI处理20GB文件，共3项任务。`
 
-**Expected:** `使用AI完成 3 项任务。`
+**Expected:** `使用AI处理 20GB文件，共 3 项任务。`
 
 ## Protected content and conservative edits
 
@@ -207,7 +207,7 @@ print("hello  world")
 ## Final acceptance criteria
 
 - Every statement in **retained primary content and actual conversation turns** is present once, in the original sequence. For full-page website copies and AI chat exports, identifiable UI/navigation/operational noise is removed under the source-aware rules.
-- The user's two spacing controls are honored independently.
+- The user's per-boundary spacing overrides are respected, including the coordinated numeric-unit setting when mixed-language spacing is disabled.
 - Paragraph boundaries, notes, tables, Markdown syntax, and protected spans are intact.
 - Running the same cleanup profile again makes no substantive changes.
 - Ambiguity is preserved rather than resolved by an unsupported guess.
@@ -215,3 +215,7 @@ print("hello  world")
 ## Web and AI-conversation cases
 
 See [`WEB_CHAT_CASES.md`](WEB_CHAT_CASES.md) for cases 23–32, covering whole academic webpage copying, DeepSeek process text, multi-turn Claude histories, page headers/footers, article bibliographies versus UI tabs, role quotations, HTML entities, and user-requested unfiltered copying.
+
+## Level 1 and optional-normalization cases
+
+See [`LEVEL1_LEVEL3_CASES.md`](LEVEL1_LEVEL3_CASES.md) for cases 33–53, including Unicode/encoding cleanup, fullwidth Latin/digits, boilerplate and duplicate handling, no-add/unit spacing, and explicitly activated Level 3 operations.

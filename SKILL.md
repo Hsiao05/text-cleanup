@@ -1,6 +1,6 @@
 ---
 name: text-cleanup
-description: Clean and structurally organize messy Chinese, English, and mixed-language text while preserving source meaning and wording. Use for copied PDF/OCR text, pasted full web pages, AI chat exports (including multi-turn chats, visible process notes, and navigation clutter), transcripts, plain text, or Markdown with hard wraps, broken/joined words, stray spaces, page headers/footers, and formatting debris. Extract primary page content, recover user/AI turns, and distinguish AI process text from final answers. Supports configurable Chinese–Latin/Chinese–number spacing.
+description: Faithfully clean and restore messy Chinese, English, and mixed-language text from PDF/OCR copies, pasted webpages, AI chat transcripts, and Markdown. Fix broken/fused words, hard wraps, stray/invisible characters, encoding artifacts, fullwidth Latin/digits, page headers/footers, web UI clutter, and chat turns without rewriting content. Configurable CJK/Latin/numeral/unit spacing; optional proofreading and other semantic normalization only upon explicit user request.
 ---
 
 # Text Cleanup and Organization
@@ -9,7 +9,7 @@ description: Clean and structurally organize messy Chinese, English, and mixed-l
 
 Use this skill to turn already available text into a readable, faithful document. Repair **mechanical and layout defects**, not its ideas or writing quality. Suitable inputs include PDF-extracted text, OCR transcripts, **whole-page web copy**, **AI chat transcripts**, speech-to-text exports, rough notes, and malformed Markdown.
 
-This is a **cleanup and structural-restoration** task, not summarization, paraphrasing, proofreading, translation, fact-checking, or editorial revision. **Web-page and AI-chat inputs additionally authorize removing identifiable UI/navigation/operational noise**; do not treat deleting central article text or genuine messages as cleanup. It complements `pdf-to-markdown`: that skill extracts/transcribes a source and may describe images; this skill cleans text that has already been extracted. If the user supplies a PDF and asks for extraction, perform extraction with the appropriate source-reading workflow before applying these cleanup rules. Never invent material missing from an extracted source.
+The **default (Levels 1–2)** is cleanup and structural restoration, not summarization, paraphrasing, proofreading, translation, fact-checking, or editorial revision. **Web-page and AI-chat inputs additionally authorize removing identifiable UI/navigation/operational noise**; do not treat deleting central article text or genuine messages as cleanup. **Level 3** comprises independent, opt-in content normalizations; never apply them merely because a text could be made more consistent. It complements `pdf-to-markdown`: that skill extracts/transcribes a source and may describe images; this skill cleans text that has already been extracted. If the user supplies a PDF and asks for extraction, perform extraction with the appropriate source-reading workflow before applying these cleanup rules. Never invent material missing from an extracted source.
 
 **Priority order:** (1) explicit user requirements and chosen cleaning mode; (2) correct identification of main content/actual dialogue and preservation of its words, facts, and structure; (3) cleaning identifiable peripheral noise; (4) correctness of token boundaries, paragraphs, and reading order; (5) typography. A style rule never licenses a content change. **The no-omission rule applies to content retained after source-type filtering**, not to identifiable website chrome or chat application controls.
 
@@ -19,26 +19,28 @@ Unless the user specifies otherwise:
 
 | Setting | Default | Allowed alternatives |
 | --- | --- | --- |
-| Cleaning depth | Faithful mechanical cleanup + source-aware extraction | Content-only page mode, conversation-only mode, or no deletion if explicitly requested |
-| Chinese ↔ Latin-letter spacing | `add` | `preserve`, `remove` |
-| Chinese ↔ Arabic-numeral spacing | `add` | `preserve`, `remove` |
-| Number ↔ ordinary Latin unit spacing | `add` where applicable | Follow explicit formatting instructions |
+| Cleaning depth (Level 1) | Faithful mechanical cleanup + source-aware extraction | Content-only page mode, conversation-only mode, or no deletion if explicitly requested |
+| Chinese ↔ Latin-letter spacing (Level 2) | `add` | `preserve`, `remove` |
+| Chinese ↔ Arabic-numeral spacing (Level 2) | `add` | `preserve`, `remove` |
+| Number ↔ ordinary Latin unit spacing (Level 2) | `add` only in the standard spacing profile | `preserve` or `remove` with a no-space profile or explicit instruction |
 | Paragraphs | Restore actual boundaries; discard visual-only wraps | Preserve source line breaks if requested |
 | Output | Cleaned text, without a preface; retain the input's format where feasible | Markdown, plain text, or another explicitly requested format |
 | AI process notes in chat | Keep **substantive, visibly copied** process text in a marked block; remove routine status/debug/UI notices | `keep-all`, `remove-all` on request |
 | Speaker labels in chat | `用户：` and `AI：` for every confidently identified turn | Keep original role names, e.g. `Claude：` or `DeepSeek：`, on request |
+| Optional Level 3 normalization | **Off**; do not suggest or ask about it in ordinary cleanup | Activate only the specific operation(s) explicitly requested by the user |
 | Comments/change log | None | Provide separately if requested |
 
-Interpret spacing overrides precisely:
+**The spacing profile has three boundary types:** Chinese↔Latin letters, Chinese↔Arabic numerals (including numbers next to Chinese units), and ordinary numbers↔Latin alphabetic units (`20 GB`, `5 km`, `10 kg`). Interpret instructions as follows:
 
-- **“中英文之间不添加空格”** → Chinese/Latin mode `preserve`: do not introduce spaces at those boundaries, but do not strip existing intentional ones. **“中文和数字之间不添加空格”** independently sets Chinese/numeral mode `preserve`.
-- **“中英文、中文数字之间都不要加空格”** → set both to `preserve`.
-- **“中英文之间不要留空格 / 删除所有中英文之间的排版空格 / 紧凑排版”** → use `remove` for the specified boundary type(s), but retain word separators and protected syntax.
-- **“按中文排版规范加空格”** → use `add` for both.
-- **“保持原文空格 / 不要调整排版空格”** → respect that request; only fix the explicitly identified defects.
-- Requests about Chinese↔Latin spacing do **not** abolish required spaces between English words, or silently change units (`10 GB`), punctuation, or code.
+- **“中西文之间不加空格 / 中英文和数字都不加空格 / 混排不添加空格”** → `preserve` for **all three** boundary types. In particular, do **not** turn `20GB` into `20 GB` or `20公斤` into `20 公斤`. Existing ordinary gaps stay unless removal is requested.
+- **“中西文之间不要有空格 / 紧凑排版 / 把中西文及数字单位间的空格都删掉”** → `remove` for **all three** boundary types, where the gap is only optional typography (e.g. `20 GB` → `20GB`). Never remove syntactically or semantically required spaces.
+- **“中英文之间不添加空格”** → Chinese/Latin `preserve`, and **also** number/Latin-unit `preserve`; Chinese/numeral retains the established mode **unless** the request refers to all mixed-language spacing. **“中文和数字之间不添加空格”** sets Chinese/numeral `preserve` independently.
+- **“中英文之间不加空格，但中文数字按标准排版”** → Chinese/Latin `preserve`, Chinese/numeral `add`, number/Latin-unit `preserve` unless the user specifies a different unit convention.
+- **“按中文排版规范加空格”** → `add` for all three unless a more specific override exists.
+- **“保持原文空格 / 不要调整排版空格”** → preserve the source's optional typographic gaps; repair only clearly corrupt spacing.
+- **No-add (`preserve`) and no-space (`remove`) are different:** `20 GB` remains `20 GB` under `preserve` but may become `20GB` under `remove` when it is ordinary prose and not a protected expression. Required spaces between **different English words**, mathematical tokens, code and other protected structures always remain.
 
-Prefer the user's document-wide established convention over the defaults. Don't ask which profile to use unless the ambiguity will materially affect the requested result.
+Respect explicit per-boundary exceptions. Do not ask for a spacing preference or promote optional normalization during routine processing; follow the default if nothing relevant was specified.
 
 ## Processing workflow
 
@@ -46,7 +48,7 @@ Prefer the user's document-wide established convention over the defaults. Don't 
 
 Read **all available text** and first classify the material as **document/OCR**, **copied webpage**, **AI chat log**, or **mixed**. Determine language(s), intended reading order, paragraphs, headings, lists, quotations, tables, references, notes, speaker changes, and explicit layout conventions. Apply source-type rules below **before** broad whitespace normalization. For mixed inputs, identify subregions and apply the corresponding policy locally. Distinguish raw plain text from actual Markdown. For long inputs, process by logical sections while preserving continuity and cross-section references.
 
-Identify spans that must be treated as **opaque** unless the user asks to edit them: fenced/inline code, commands, file paths, URLs, email addresses, identifiers, Markdown link destinations and syntax, HTML/XML tags, YAML front matter, equations/LaTeX, scientific notation, regular expressions, JSON, CSV/TSV fields, time stamps, numeric data, and metadata. Preserve literal formatting inside diagrams, poetry, verse, code blocks, lyrics, fixed-width layouts, and preformatted quotations. Protect Markdown tables and existing footnote definitions before any global whitespace operation.
+Identify spans that must be treated as **opaque** unless the user asks to edit them: fenced/inline code, commands, file paths, URLs, email addresses, identifiers, Markdown link destinations and syntax, literal HTML/XML tags, YAML front matter, equations/LaTeX, scientific notation, regular expressions, JSON, CSV/TSV fields, time stamps, numeric data, and metadata. Preserve literal formatting inside diagrams, poetry, verse, code blocks, lyrics, fixed-width layouts, and preformatted quotations. Protect Markdown tables and existing footnote definitions before any global whitespace operation. **Recover human-readable pasted text without treating literal source examples as formatting debris.**
 
 Do not erase or reinterpret leading/trailing spaces that have syntactic meaning (Markdown hard breaks, nested lists, code indentation, tabular columns, etc.). Do not apply a broad regex to the entire document when it would touch protected spans.
 
@@ -79,13 +81,30 @@ This section applies to ChatGPT, Claude, DeepSeek, Gemini, and other AI chat pag
 
 **Example 3 (multi-turn Claude chat):** For a paste beginning with an AI answer about NAS and cloud storage, followed by the user saying the budget is too high, another AI answer, a user asking about Windows-only local tagging, and another AI answer, retain the full **AI → 用户 → AI → 用户 → AI** sequence. Omit only navigation/progress/disclaimer artifacts, not the content of either answer. Do not invent the missing first question. See case 26.
 
-### 2. Remove meaningless whitespace and encoding artifacts
+### 2. Level 1 — Clean mechanical defects, encoding artifacts, and noise
 
-- Normalize line endings and accidental whitespace runs in ordinary prose. Replace multiple ordinary interword spaces, stray tabs, nonbreaking spaces, and copy/paste artifacts with the one correct separator **only when their function is clear**.
-- Remove spaces between adjacent Chinese characters when they are obvious layout debris: `文 本 清 洗` → `文本清洗`. Keep genuine separation between field values, table cells, item labels, poetry, and deliberate letterspacing.
-- Strip incidental spaces just inside ordinary Chinese punctuation or at prose line edges. Preserve spaces with syntactic purpose.
-- Preserve original Chinese/traditional characters, accents, diacritics, IPA, mathematical symbols, emoji sequences, and linguistic notation. Do not indiscriminately use Unicode NFKC normalization, remove all zero-width characters, or collapse whitespace across protected structures. Normalize an invisible artifact only when it is demonstrably extraneous.
-- Remove repeated PDF-style page numbers, running headers/footers, or duplicated extraction fragments **only if identifiable as layout artifacts** (including `Page 5`, `— 5 —`, repeated journal/chapter title, recurring legal footer, scan watermark, or website sticky header). Check page position, repetition, and surrounding context. Do not remove actual dates, bibliography numbers, source quotes, meaningful repetition, or note text.
+Apply Level 1 by default **only to ordinary text spans**, after isolating protected syntax. These are repair operations, not a license to standardize style or wording. For each uncertain case, prefer retaining the original over a plausible-looking change.
+
+**2A. Encoding and invisible-character safety**
+
+1. If operating on an actual byte file, detect/read its real encoding before decoding when possible; don't blindly relabel or re-encode text. In already-decoded pasted text, normalize ordinary line endings (`CRLF`/`CR` → logical `LF`), remove a stray file-start BOM (`U+FEFF`), and decode unambiguously escaped HTML entities **only where they are rendered-text debris**. Preserve literal encoding examples, code, markup, URLs and query strings.
+2. Identify replacement characters (`�`, `U+FFFD`), visible mojibake, or garbled sequences. Repair **only** when a unique recovery is demonstrable from available source or reversible evidence. A replacement character usually means information is lost: do not invent the absent character, reword around it, or claim to have restored the original. Keep the uncertain span in place unless the user specifically requests annotated uncertainty.
+3. For ordinary prose, remove **clearly extraneous** zero-width space (`U+200B`), word joiner (`U+2060`), stray internal BOM, nonprinting control characters, and copy/paste artifacts. Remove discretionary soft hyphen (`U+00AD`) only when it is an accidental hyphenation/display artifact; determine whether to join adjacent word fragments using the word-boundary rules below.
+4. **Never strip all invisible Unicode characters globally.** Protect emoji ZWJ (`U+200D`) sequences, variation selectors (`U+FE0F`), intentional ZWNJ/ZWJ in languages that need them, bidirectional-control contexts, combining marks, non-breaking formatting meaningful to formulas, and other intentional writing-system behavior. Retain line/tab controls when structural, and do not corrupt protected code or structured files.
+
+**2B. Whitespace and fullwidth ASCII**
+
+1. Normalize accidental multi-spaces and tabs in prose to the contextually correct separator; trim stray prose-edge whitespace and extra empty lines. Collapse layout-only spacing within a Chinese phrase (`文 本 清 洗` → `文本清洗`). Preserve real word boundaries, list/table columns, Markdown hard breaks/indentation, citations, fixed-width content, and intentional visual spacing.
+2. Treat `U+00A0` (NBSP) and `U+3000` (ideographic space) as ordinary layout whitespace **only when clearly pasted as accidental prose padding**. Do not destroy their meaning in Japanese text, names, preformatted content or nonbreaking technical notation.
+3. Convert **fullwidth ASCII Latin letters and digits** in ordinary, non-decorative prose (`ＡＢＣ１２３` → `ABC123`) when their width is an obvious input/paste artifact. Do **not** apply global Unicode `NFKC`, which can also alter circled numbers, mathematical notation, compatibility forms and symbols; do not automatically convert fullwidth punctuation, Japanese typography, citations, branded typography, or other deliberate character choices.
+4. Preserve original Simplified/Traditional Chinese characters, variant glyphs, accents, diacritics, IPA, symbols and original wording. Default Level 1 **does not** translate, convert scripts, alter letter case, standardize dates/numerals/units, or correct spelling.
+
+**2C. Source-aware peripheral noise and duplicates**
+
+1. Remove identifiable page numbers, running heads/feet, recurring publication labels, scan overlays, website sticky headers, and duplicated extraction fragments only when context establishes that they are layout or extraction artifacts. Use repetition, placement and boundaries; don't delete standalone numbers if they may be references, list numbers, dates or values.
+2. Remove webpage/application boilerplate such as navigation, banners, ads, footer copyright/legal text, `点击展开全文`/`点击查看更多`/`返回顶部` controls, unrelated recommended links, and operation buttons **only when they serve interface/navigation functions rather than content**. Preserve an article's actual author/editor credits, substantive copyright/licensing notices, references and attributed metadata when material to the primary item; `责任编辑：XXX` is **not** an automatic deletion trigger.
+3. De-duplicate mechanically repeated headers/paragraph copies or obvious scrape-loop artifacts **only when genuinely redundant** and outside a deliberate quotation or argumentative repetition. Do **not** collapse expressive repetition (`好好好好`, `！！！！！`), parallelism, dialogue, or duplicate-looking but distinct evidence by default.
+4. Follow the detailed webpage and conversation filtering rules in 1A–1B. Their special rules take precedence over generic keyword matches. If uncertain whether a segment is primary content, retain it.
 
 ### 3. Restore words and correct boundaries
 
@@ -110,7 +129,7 @@ Some contiguous strings are valid names or tokens. `therapist`, `together`, `not
 
 **CJK and mixed-language boundaries.** Repair spaces accidentally inserted *inside* a meaningful Chinese expression, but never alter fixed brand names, original Japanese/Korean typography, technical symbols, or intentional separators. Do not assume that every Han character occurs in Chinese prose; apply the Chinese typography profile to Chinese-language contexts, not automatically to Japanese text.
 
-**Punctuation.** Fix obvious spacing around punctuation and unambiguous Chinese full-width versus English half-width punctuation in ordinary prose. Follow Chinese-copywriting conventions where safe: Chinese-prose commas, colons, brackets, and sentence-ending punctuation usually use full-width marks; standalone English sentences and special English names use half-width marks. Preserve intended punctuation choices, quote text, ellipses, stylistic emphasis, source errors, and bibliographic punctuation. Do **not** suppress repeated exclamation/question marks or change quotation-mark styles merely because a style guide prefers another form. Do not replace `“”` with `「」` by default.
+**Punctuation (Level 2).** Fix unambiguous **spacing defects** around Chinese and English punctuation in ordinary prose. Follow Chinese-copywriting conventions where safe, but do **not** automatically convert legitimate source punctuation solely to enforce fullwidth/halfwidth uniformity. Preserve intended punctuation choices, quotation punctuation, ellipses, expressive repetition (`！！！！！`), bibliographic formats and stylistic emphasis. Do not rewrite `“”` as `「」` or merge repeated marks by default; optional content/style normalization belongs to Level 3.
 
 ### 4. Restore paragraphs and structural line breaks
 
@@ -140,23 +159,25 @@ Do not merge two genuine paragraphs because there was only one physical newline;
 Default `add` follows the pertinent conventions of [Chinese Copywriting Guidelines](https://github.com/sparanoid/chinese-copywriting-guidelines), **subject to fidelity and the user's override**:
 
 - Chinese ↔ English/Latin: `使用AI写作` → `使用 AI 写作`.
-- Chinese ↔ Arabic digits: `共有3项结果` → `共有 3 项结果`.
-- Ordinary numbers ↔ alphabetic units: `20GB` → `20 GB` only where `GB` is clearly a unit, not part of a product/identifier.
+- Chinese ↔ Arabic digits: `共有3项结果` → `共有 3 项结果`, including numeric quantities adjacent to Chinese units (`20公斤` → `20 公斤`).
+- Ordinary numbers ↔ alphabetic units in the **default standard profile**: `20GB` → `20 GB` only where `GB` is clearly a unit, not part of a product/identifier.
+- **When mixed-language spacing is disabled, unit spacing is disabled with it**: `使用AI处理20GB文件` stays `使用AI处理20GB文件` under the general `preserve` profile; under the general `remove` profile, `使用 AI 处理 20 GB 文件` may become `使用AI处理20GB文件`. An explicit request concerning only Chinese↔number spacing does not automatically determine the independent Latin-unit rule.
+- Treat **dates and times as structured notation**: do not re-space within an already valid date (`2026年10月26日`), rewrite it as `2026-10-26`, or change day/month order solely to fit a style preference. A clear outer number/Chinese boundary may still follow the chosen profile, but preserving the coherent date expression takes precedence. Date-format conversion is opt-in Level 3.
 - Percentage/degree sign: `15%`, `90°`; do not introduce `15 %` or `90 °`.
 - Full-width Chinese punctuation normally has no padding: `使用 AI，效果明显。`, not `使用 AI ， 效果明显。`.
 - Preserve official spellings and internal formatting (`豆瓣FM` if that is the source name, `GitHub`, `Wi-Fi`, `IPv6`, `H₂O`, `GPT-6`, `2FA`, version numbers).
-- Do not alter a link URL or markup to manufacture display-text spacing. Spacing **outside** protected inline markup may be normalized if syntax and user preference permit.
+- Do not alter link URLs or markup to manufacture display-text spacing. Spacing **outside** protected inline markup may be normalized if syntax and user preference permit.
 
-Example of the three Chinese↔Latin and Chinese↔number profiles (with both set to the same value):
+Example of the three coordinated spacing profiles (when no user override separates boundary types):
 
 ```text
-Input:     这个AI工具有3个功能。
-add:       这个 AI 工具有 3 个功能。
-preserve:  这个AI工具有3个功能。
-remove:    这个AI工具有3个功能。
+Input:     这个AI工具有3个功能，处理20GB文件。
+add:       这个 AI 工具有 3 个功能，处理 20 GB 文件。
+preserve:  这个AI工具有3个功能，处理20GB文件。
+remove:    这个AI工具有3个功能，处理20GB文件。
 ```
 
-`preserve` and `remove` differ when source text *already* has boundary spaces: `这个 AI 工具有 3 个功能。` stays unchanged under `preserve`, but becomes `这个AI工具有3个功能。` under `remove`. These modes change only optional Chinese-adjacent typographic spaces, not all spaces.
+`preserve` and `remove` differ when source text *already* has optional gaps: `这个 AI 工具有 3 个功能，处理 20 GB 文件。` stays unchanged under `preserve`, but becomes `这个AI工具有3个功能，处理20GB文件。` under `remove`. These modes **never** remove actual English interword spaces, structure-bearing whitespace or technical notation that requires separate tokens.
 
 When a mixed-language boundary coincides with actual source corruption, first restore the correct word/number tokens, then apply the selected typographic spacing profile. Never let `remove` join separate English words or destroy Markdown syntax.
 
@@ -177,13 +198,20 @@ Check silently, comparing against the source, that:
 1. No sentences, names, numbers, units, dates, URLs, citations, notes, or table cells **within retained primary content/actual chat turns** were lost or added. Deletion of peripheral page/chat chrome is deliberate and documented by the source-type rules.
 2. Clearly accidental internal English spaces and fused words were repaired; valid names and identifiers were not broken.
 3. Only width-induced wraps were merged; all real paragraphs and structural newlines survive.
-4. Chinese↔Latin and Chinese↔number profiles were applied **independently** and consistently; exceptions still work.
-5. Markdown links, tables, footnotes, quotes, code, formulas, and indentation still parse correctly.
-6. No spelling/grammar/content rewriting, unsupported inference, or unexpected capitalization changes occurred.
-7. Page/article metadata and full primary body were not confused with related links; headers/footers/page numbers were deleted only where clearly non-content. In chat mode, every real user/AI turn remains in sequence, substantive retained process text is clearly marked, and no synthetic question appears.
-8. An already-cleaned document would remain effectively unchanged under the same settings (idempotence).
+4. Chinese↔Latin, Chinese↔number, and number↔Latin-unit spacing follow the **requested coordinated/no-space profile** or any explicit per-boundary exceptions, consistently.
+5. Suspect encoding debris, BOM, invalid controls, invisible characters and fullwidth Latin/digits were fixed only when safe; meaningful Unicode sequences were preserved.
+6. Markdown links, tables, footnotes, quotes, code, formulas, and indentation still parse correctly.
+7. No spelling/grammar/content rewriting, unauthorized Level 3 transformations, unsupported inference, or unexpected capitalization changes occurred.
+8. Page/article metadata and full primary body were not confused with related links; headers/footers/page numbers were deleted only where clearly non-content. In chat mode, every real user/AI turn remains in sequence, substantive retained process text is clearly marked, and no synthetic question appears.
+9. An already-cleaned document would remain effectively unchanged under the same settings (idempotence).
 
 For an ambiguous token boundary, name, reference, OCR reading, speaker assignment, main-content boundary, or paragraph relationship, **preserve the original**. Do not invent a replacement just to produce a tidy document. If the user requests a report, list such unresolved cases separately; otherwise return the faithful cleaned text without inserting editorial notes into the body.
+
+## Level 3 — Independent opt-in normalization (off by default)
+
+**Do not load or invoke Level 3 for ordinary cleaning, do not prompt the user to enable it, and do not append a menu/suggestion after a cleaned result.** Only explicit user instructions such as “转为简体”“统一日期为 YYYY-MM-DD”“纠正错别字” authorize the **named** operation(s). “清洗一下 / 整理排版 / 格式统一” by themselves authorize Levels 1–2, not discretionary rewriting.
+
+When an operation is specifically requested, use [`references/OPTIONAL_NORMALIZATION.md`](references/OPTIONAL_NORMALIZATION.md) for its scope, safeguards, and examples. The user may enable one operation without enabling any other. Do not force normalization of acceptable alternative formats (dates, units, proper names, punctuation, capitalization) simply for consistency. Preserve source data and original evidence when conversion is uncertain.
 
 ## Output contract
 
@@ -193,7 +221,7 @@ Do not silently truncate long inputs. When output/file limits prevent full compl
 
 ## Additional examples and edge cases
 
-See [`references/TEST_CASES.md`](references/TEST_CASES.md) for basic cleanup and spacing tests, and [`references/WEB_CHAT_CASES.md`](references/WEB_CHAT_CASES.md) for full-page extraction, multi-turn AI conversation reconstruction, visible-process formatting, and deletion boundaries. Apply the policy above to each case; examples are not a license for blanket token replacements.
+See [`references/TEST_CASES.md`](references/TEST_CASES.md) for basic cleanup and spacing tests, [`references/WEB_CHAT_CASES.md`](references/WEB_CHAT_CASES.md) for full-page extraction and AI chat reconstruction, and [`references/LEVEL1_LEVEL3_CASES.md`](references/LEVEL1_LEVEL3_CASES.md) for Unicode/encoding safety, boilerplate deletion and opt-in checks. The separate [`references/OPTIONAL_NORMALIZATION.md`](references/OPTIONAL_NORMALIZATION.md) is **instructions for opt-in transformations only**, not part of the default cleanup. Examples never license blanket replacements.
 
 ## Source guidelines
 
